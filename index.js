@@ -8,8 +8,8 @@ const sendFormPOST = async (url, body) =>
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
 
-const getToken = async (apikey, userid) => {
-    const res = await sendFormPOST(`https://kakaoapi.aligo.in/akv10/token/create/30/s`, {
+const getToken = async (apikey, userid, time = 30, unit = "s") => {
+    const res = await sendFormPOST(`https://kakaoapi.aligo.in/akv10/token/create/${time}/${unit}`, {
         apikey,
         userid,
     });
@@ -20,6 +20,8 @@ const getToken = async (apikey, userid) => {
         throw new Error(data.message);
     }
 };
+
+const padtwo = (number) => (String(number).length >= 2 ? String(number) : "0" + String(number));
 
 const replaceAllTokens = (haystack, replacers) => {
     return haystack.replace(/#{(.+?)}/g, (matched, p1, offset) => {
@@ -61,6 +63,74 @@ const AligoKakaoAPI = (config = {}) => {
             throw new Error(res.data.message);
         }
     };
+    const getMessageHistoryPage = async (start, end, page = 1, limit = 500, token) => {
+        if (!token) {
+            token = await getToken(config.key, config.userID);
+        }
+        let body = {
+            token,
+            apikey: config.key,
+            userid: config.userID,
+            page,
+            limit,
+            startdate: `${start.getFullYear()}${padtwo(start.getMonth() + 1)}${padtwo(
+                start.getDate()
+            )}`,
+            enddate: `${end.getFullYear()}${padtwo(end.getMonth() + 1)}${padtwo(end.getDate())}`,
+        };
+        const res = await sendFormPOST("https://kakaoapi.aligo.in/akv10/history/list", body);
+        if (res.data.code == 0) {
+            return {
+                page: {
+                    current: Number(res.data.currentPage),
+                    total: Number(res.data.totalPage),
+                },
+                list: res.data.list,
+            };
+        } else {
+            throw new Error(res.data.message);
+        }
+    };
+
+    const getMessageHistory = async (start, end = new Date(), detail = false) => {
+        const token = await getToken(config.key, config.userID);
+        let master = [];
+        let totalPage = null;
+        let currentPage = 0;
+        while (totalPage == null || currentPage < totalPage) {
+            currentPage += 1;
+            const res = await getMessageHistoryPage(start, end, currentPage, undefined, token);
+            master = [...master, ...res.list];
+            totalPage = res.page.total;
+        }
+        if (detail) {
+            const _all_details = await Promise.all(
+                master.map(({ mid }) => getMessageDetail(mid, token))
+            );
+            // flatten & join
+            master = _all_details.reduce((acc, cur) => [...acc, ...cur], []);
+        }
+        return master;
+    };
+
+    const getMessageDetail = async (mid, token) => {
+        if (!token) {
+            token = await getToken(config.key, config.userID);
+        }
+        let body = {
+            token,
+            apikey: config.key,
+            userid: config.userID,
+            mid,
+            limit: 500,
+        };
+        const res = await sendFormPOST("https://kakaoapi.aligo.in/akv10/history/detail", body);
+        if (res.data.code == 0) {
+            return res.data.list;
+        } else {
+            throw new Error(res.data.message);
+        }
+    };
 
     const getTemplateList = async () => {
         const token = await getToken(config.key, config.userID);
@@ -78,7 +148,7 @@ const AligoKakaoAPI = (config = {}) => {
             throw new Error(res.data.message);
         }
     };
-    return { sendMessage, getTemplateList };
+    return { sendMessage, getTemplateList, getMessageHistory, getMessageDetail };
 };
 
 module.exports = AligoKakaoAPI;

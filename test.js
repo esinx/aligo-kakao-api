@@ -3,7 +3,7 @@ const YAML = require("yaml");
 const AligoKakaoAPI = require(".");
 
 (async () => {
-    const { sendMessage, getTemplateList } = AligoKakaoAPI({
+    const { sendMessage, getTemplateList, getMessageHistory, getMessageDetail } = AligoKakaoAPI({
         key: process.env.API_KEY,
         userID: process.env.USER_ID,
         sender: process.env.SENDER,
