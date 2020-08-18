@@ -63,6 +63,23 @@ const AligoKakaoAPI = (config = {}) => {
             throw new Error(res.data.message);
         }
     };
+
+    const cancelMessage = async (mid) => {
+        const token = await getToken(config.key, config.userID);
+        let body = {
+            token,
+            apikey: config.key,
+            userid: config.userID,
+            mid,
+        };
+        const res = await sendFormPOST("https://kakaoapi.aligo.in/akv10/cancel/", body);
+        if (res.data.code == 0) {
+            return true;
+        } else {
+            throw new Error(res.data.message);
+        }
+    };
+
     const getMessageHistoryPage = async (start, end, page = 1, limit = 500, token) => {
         if (!token) {
             token = await getToken(config.key, config.userID);
@@ -148,7 +165,7 @@ const AligoKakaoAPI = (config = {}) => {
             throw new Error(res.data.message);
         }
     };
-    return { sendMessage, getTemplateList, getMessageHistory, getMessageDetail };
+    return { sendMessage, cancelMessage, getTemplateList, getMessageHistory, getMessageDetail };
 };
 
 module.exports = AligoKakaoAPI;
