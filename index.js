@@ -8,14 +8,20 @@ const sendFormPOST = async (url, body) =>
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
 
-const getToken = async (apikey, userid, time = 30, unit = "s") => {
-    const res = await sendFormPOST(`https://kakaoapi.aligo.in/akv10/token/create/${time}/${unit}`, {
-        apikey,
-        userid,
-    });
+const getToken = async (apikey, userid, lifetime_ms = 1000 * 30) => {
+    const res = await sendFormPOST(
+        `https://kakaoapi.aligo.in/akv10/token/create/${lifetime_seconds}/s`,
+        {
+            apikey,
+            userid,
+        }
+    );
     const { data } = res;
     if (data.code == 0) {
-        return data.token;
+        return {
+            content: data.token,
+            lifetime: new Date(new Date().getTime() + lifetime_ms),
+        };
     } else {
         throw new Error(data.message);
     }
@@ -44,10 +50,13 @@ const createMessageBody = (template, messages) => {
 };
 
 const AligoKakaoAPI = (config = {}) => {
+    let token;
     const sendMessage = async (template, messages, options) => {
-        const token = await getToken(config.key, config.userID);
+        if (!token || new Date() >= token.lifetime) {
+            token = await getToken(config.key, config.userID);
+        }
         let body = {
-            token,
+            token: token.content,
             apikey: config.key,
             userid: config.userID,
             sender: config.sender,
@@ -65,9 +74,11 @@ const AligoKakaoAPI = (config = {}) => {
     };
 
     const cancelMessage = async (mid) => {
-        const token = await getToken(config.key, config.userID);
+        if (!token || new Date() >= token.lifetime) {
+            token = await getToken(config.key, config.userID);
+        }
         let body = {
-            token,
+            token: token.content,
             apikey: config.key,
             userid: config.userID,
             mid,
@@ -80,12 +91,12 @@ const AligoKakaoAPI = (config = {}) => {
         }
     };
 
-    const getMessageHistoryPage = async (start, end, page = 1, limit = 500, token) => {
-        if (!token) {
+    const getMessageHistoryPage = async (start, end, page = 1, limit = 500) => {
+        if (!token || new Date() >= token.lifetime) {
             token = await getToken(config.key, config.userID);
         }
         let body = {
-            token,
+            token: token.content,
             apikey: config.key,
             userid: config.userID,
             page,
@@ -110,7 +121,9 @@ const AligoKakaoAPI = (config = {}) => {
     };
 
     const getMessageHistory = async (start, end = new Date(), detail = false) => {
-        const token = await getToken(config.key, config.userID);
+        if (!token || new Date() >= token.lifetime) {
+            token = await getToken(config.key, config.userID);
+        }
         let master = [];
         let totalPage = null;
         let currentPage = 0;
@@ -130,12 +143,12 @@ const AligoKakaoAPI = (config = {}) => {
         return master;
     };
 
-    const getMessageDetail = async (mid, token) => {
-        if (!token) {
+    const getMessageDetail = async (mid) => {
+        if (!token || new Date() >= token.lifetime) {
             token = await getToken(config.key, config.userID);
         }
         let body = {
-            token,
+            token: token.content,
             apikey: config.key,
             userid: config.userID,
             mid,
@@ -150,9 +163,11 @@ const AligoKakaoAPI = (config = {}) => {
     };
 
     const getTemplateList = async () => {
-        const token = await getToken(config.key, config.userID);
+        if (!token || new Date() >= token.lifetime) {
+            token = await getToken(config.key, config.userID);
+        }
         let body = {
-            token,
+            token: token.content,
             apikey: config.key,
             userid: config.userID,
             sender: config.sender,
