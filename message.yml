@@ -1,0 +1,6 @@
+TEMPLATE_ID:
+    - target: "TARGET_PHONE"
+      subject: "SUBJECT"
+      content:
+          key: value
+          find: replace
