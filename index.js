@@ -10,7 +10,7 @@ const sendFormPOST = async (url, body) =>
 
 const getToken = async (apikey, userid, lifetime_ms = 1000 * 30) => {
     const res = await sendFormPOST(
-        `https://kakaoapi.aligo.in/akv10/token/create/${lifetime_seconds}/s`,
+        `https://kakaoapi.aligo.in/akv10/token/create/${lifetime_ms}/s`,
         {
             apikey,
             userid,
