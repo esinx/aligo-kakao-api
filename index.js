@@ -134,8 +134,14 @@ const AligoKakaoAPI = (config = {}) => {
             totalPage = res.page.total;
         }
         if (detail) {
+            const getMessageDetailAndMerge = async (obj, mid, token) => {
+                return {
+                    ...obj,
+                    ...(await getMessageDetail(mid, token)),
+                };
+            };
             const _all_details = await Promise.all(
-                master.map(({ mid }) => getMessageDetail(mid, token))
+                master.map((obj) => getMessageDetailAndMerge(obj, mid, token))
             );
             // flatten & join
             master = _all_details.reduce((acc, cur) => [...acc, ...cur], []);
