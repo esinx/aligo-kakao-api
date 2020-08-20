@@ -141,7 +141,7 @@ const AligoKakaoAPI = (config = {}) => {
                 };
             };
             const _all_details = await Promise.all(
-                master.map((obj) => getMessageDetailAndMerge(obj, mid, token))
+                master.map((obj) => getMessageDetailAndMerge(obj, obj.mid, token))
             );
             // flatten & join
             master = _all_details.reduce((acc, cur) => [...acc, ...cur], []);
