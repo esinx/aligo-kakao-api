@@ -135,13 +135,10 @@ const AligoKakaoAPI = (config = {}) => {
         }
         if (detail) {
             const _all_details = await Promise.all(
-                master.map(({ mid }) => async () => {
-                    const detail = await getMessageDetail(mid, token);
-                    return detail;
-                })
+                master.map(({ mid }) => getMessageDetail(mid, token))
             );
             // flatten & join & merge
-            const master = _all_details.reduce((acc, cur) => [...acc, ...cur], []);
+            master = _all_details.reduce((acc, cur) => [...acc, ...cur], []);
         }
         return master;
     };
