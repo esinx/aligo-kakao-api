@@ -134,17 +134,14 @@ const AligoKakaoAPI = (config = {}) => {
             totalPage = res.page.total;
         }
         if (detail) {
-            const getMessageDetailAndMerge = async (obj, mid, token) => {
-                return {
-                    ...obj,
-                    ...(await getMessageDetail(mid, token)),
-                };
-            };
             const _all_details = await Promise.all(
-                master.map((obj) => getMessageDetailAndMerge(obj, obj.mid, token))
+                master.map(({ mid }) => async () => {
+                    const detail = await getMessageDetail(mid, token);
+                    return detail;
+                })
             );
-            // flatten & join
-            master = _all_details.reduce((acc, cur) => [...acc, ...cur], []);
+            // flatten & join & merge
+            const master = _all_details.reduce((acc, cur) => [...acc, ...cur], []);
         }
         return master;
     };
@@ -162,7 +159,10 @@ const AligoKakaoAPI = (config = {}) => {
         };
         const res = await sendFormPOST("https://kakaoapi.aligo.in/akv10/history/detail", body);
         if (res.data.code == 0) {
-            return res.data.list;
+            return res.data.list.map((obj) => ({
+                ...obj,
+                mid,
+            }));
         } else {
             throw new Error(res.data.message);
         }
